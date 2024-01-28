@@ -15,3 +15,51 @@ public AppConfig() {}
 * `@Repository` 애노테이션 생략가능
   * 컴포넌트 스캔을 스프링 데이터 JPA가 자동으로 처리 하기 때문에 생략가능
   * JPA 예외를 스프링 예외로 변환하는 과정도 자동으로 처리한다.
+***
+# Query Method
+***
+### 메소드 이름으로 쿼리 생성
+* JPA 
+```java
+public List<Member> findByUsernameAndAgeGreaterThan(String username, int age) {
+    return em.createQuery("select m from Member m where m.username = :username and m.age >:age")
+            .setParameter("username", username)
+            .setParameter("age", age)
+            .getResultList();
+}
+```
+* 스프링 데이터 JPA
+```java
+public interface MemberRepository extends JpaRepository<Member, Long> { 
+    List<Member> findByUsernameAndAgeGreaterThan(String username, int age);
+}
+```
+스프링 데이터 JPA는 메소드의 이름을 분석해 JPQL을 생성하고 실행한다.
+### JPA Named Qeury
+* @NamedQuery 애노테이션으로 NamedQuery 정의
+```java
+@Entity
+@NamedQuery(
+        name="Member.findByUsername", 
+        query="select m from Member m where m.username = :username")
+public class Member {
+  ...
+}
+```
+* JPA 
+```java
+public class MemberRepository { 
+    public List<Member> findByUsername(String username) {
+        ...
+        List<Member> resultList = em.createNamedQuery("Member.findByUsername", Member.class)
+                .setParameter("username", username)
+                .getResultList();
+    }
+} 
+```
+* 스프링 데이터 JPA
+```java
+public interface MemberRepository extends JpaRepository<Member, Long> {
+    List<Member> findByUsername(@Param("username") String username);
+}
+```

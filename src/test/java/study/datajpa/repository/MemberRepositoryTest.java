@@ -95,4 +95,63 @@ class MemberRepositoryTest {
         assertThat(members).isEmpty();
         assertThat(afterDeleteCount).isZero();
     }
+
+
+    @Test
+    @DisplayName("Member의 이름과 나이로 조회를 할 수 있다.")
+    void findByUsernameAndAgeGreaterThan() {
+        // given
+        Member member1 = new Member("AAA", 10, null);
+        Member member2 = new Member("AAA", 20, null);
+
+        memberRepository.save(member1);
+        memberRepository.save(member2);
+
+        // when
+        List<Member> result = memberRepository.findByUsernameAndAgeGreaterThan("AAA", 15);
+
+        // then
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getUsername()).isEqualTo("AAA");
+        assertThat(result.get(0).getAge()).isEqualTo(20);
+
+    }
+
+    @Test
+    @DisplayName("Member의 이름으로 조회를 할 수 있다.")
+    void nameQuery() {
+        // given
+        Member member1 = new Member("AAA", 10, null);
+        Member member2 = new Member("BBB", 20, null);
+
+        memberRepository.save(member1);
+        memberRepository.save(member2);
+
+        // when
+        List<Member> result = memberRepository.findByUsername("AAA");
+
+        // then
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getUsername()).isEqualTo("AAA");
+        assertThat(result.get(0).getAge()).isEqualTo(10);
+    }
+    
+    @Test
+    @DisplayName("이름과 나이가 같은 Member를 조회 할 수 있다")
+    void repositoryMethodQuery() {
+        // given
+        Member member1 = new Member("AAA", 10, null);
+        Member member2 = new Member("BBB", 20, null);
+
+        memberRepository.save(member1);
+        memberRepository.save(member2);
+
+        // when
+        List<Member> result = memberRepository.findUser("AAA", 10);
+
+        // then
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getUsername()).isEqualTo("AAA");
+        assertThat(result.get(0).getAge()).isEqualTo(10);
+    }
 }
