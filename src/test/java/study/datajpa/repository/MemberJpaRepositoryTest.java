@@ -7,6 +7,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 import study.datajpa.entity.Member;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 
@@ -18,8 +20,8 @@ class MemberJpaRepositoryTest {
     MemberJpaRepository memberJpaRepository;
 
     @Test
-    @DisplayName("memberJpaRepository로 Member를 저장, 조회를 할 수 있다.")
-    void testMember() {
+    @DisplayName("Member를 저장 할 수 있다.")
+    void save() {
         // given
         Member member = new Member("memberA");
 
@@ -32,5 +34,67 @@ class MemberJpaRepositoryTest {
         assertThat(findMember.getUsername()).isEqualTo(member.getUsername());
         assertThat(findMember).isEqualTo(member);
 
+    }
+
+
+    @Test
+    @DisplayName("Member를 단건 조회를 할 수 있다.")
+    void findById() {
+        // given
+        Member member1 = new Member("member1");
+        Member member2 = new Member("member2");
+
+        memberJpaRepository.save(member1);
+        memberJpaRepository.save(member2);
+
+        // when
+        Member findMember1 = memberJpaRepository.findById(member1.getId()).get();
+        Member findMember2 = memberJpaRepository.findById(member2.getId()).get();
+
+        // then
+        assertThat(findMember1).isEqualTo(member1);
+        assertThat(findMember2).isEqualTo(member2);
+    }
+
+
+    @Test
+    @DisplayName("Member 리스트 조회를 할 수 있다.")
+    void delete() {
+        // given
+        Member member1 = new Member("member1");
+        Member member2 = new Member("member2");
+
+        memberJpaRepository.save(member1);
+        memberJpaRepository.save(member2);
+
+        // when
+        List<Member> members = memberJpaRepository.findAll();
+        long count = memberJpaRepository.count();
+
+        // then
+        assertThat(members).hasSize(2);
+        assertThat(count).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("Member를 삭제를 할 수 있다.")
+    void findAll() {
+        // given
+        Member member1 = new Member("member1");
+        Member member2 = new Member("member2");
+
+        memberJpaRepository.save(member1);
+        memberJpaRepository.save(member2);
+
+        // when
+        memberJpaRepository.delete(member1);
+        memberJpaRepository.delete(member2);
+
+        List<Member> members = memberJpaRepository.findAll();
+        long afterDeleteCount = memberJpaRepository.count();
+
+        // then
+        assertThat(members).isEmpty();
+        assertThat(afterDeleteCount).isZero();
     }
 }
