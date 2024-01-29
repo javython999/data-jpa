@@ -5,7 +5,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
+import study.datajpa.dto.MemberDto;
 import study.datajpa.entity.Member;
+import study.datajpa.entity.Team;
 
 import java.util.List;
 
@@ -16,6 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class MemberRepositoryTest {
 
     @Autowired MemberRepository memberRepository;
+    @Autowired TeamRepository teamRepository;
 
     @Test
     @DisplayName("Member를 저장 할 수 있다.")
@@ -154,4 +157,64 @@ class MemberRepositoryTest {
         assertThat(result.get(0).getUsername()).isEqualTo("AAA");
         assertThat(result.get(0).getAge()).isEqualTo(10);
     }
+
+    @Test
+    @DisplayName("Member의 username을 조회할 수 있다.")
+    void findUsernameList() {
+        // given
+        Member member1 = new Member("AAA", 10, null);
+        Member member2 = new Member("BBB", 20, null);
+
+        memberRepository.save(member1);
+        memberRepository.save(member2);
+
+        // when
+        List<String> result = memberRepository.findUsernameList();
+
+        // then
+        assertThat(result).isEqualTo(List.of("AAA", "BBB"));
+    }
+
+    @Test
+    @DisplayName("MemberDto를 조회 할 수 있다.")
+    void findMemberDto() {
+        // given
+        Team team = new Team("teamA");
+        teamRepository.save(team);
+
+        Member member = new Member("AAA", 10, null);
+        member.setTeam(team);
+
+        memberRepository.save(member);
+
+        // when
+        List<MemberDto> result = memberRepository.findMemberDto();
+
+        // then
+        assertThat(result.get(0).getId()).isEqualTo(member.getId());
+        assertThat(result.get(0).getUsername()).isEqualTo(member.getUsername());
+        assertThat(result.get(0).getTeamName()).isEqualTo(member.getTeam().getName());
+    }
+
+
+    @Test
+    @DisplayName("username을 List로 조건을 주고 조회 할 수 있다.")
+    void findByNames() {
+        // given
+        Member member1 = new Member("AAA", 10, null);
+        Member member2 = new Member("BBB", 20, null);
+        Member member3 = new Member("CCC", 30, null);
+
+        memberRepository.save(member1);
+        memberRepository.save(member2);
+        memberRepository.save(member3);
+
+        // when
+        List<Member> result = memberRepository.findByNames(List.of("AAA", "BBB"));
+
+        // then
+        assertThat(result).hasSize(2);
+        assertThat(result).isEqualTo(List.of(member1, member2));
+    }
+
 }
