@@ -4,6 +4,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.Sort;
 import org.springframework.transaction.annotation.Transactional;
 import study.datajpa.dto.MemberDto;
 import study.datajpa.entity.Member;
@@ -215,6 +219,68 @@ class MemberRepositoryTest {
         // then
         assertThat(result).hasSize(2);
         assertThat(result).isEqualTo(List.of(member1, member2));
+    }
+
+
+    @Test
+    @DisplayName("Member List를 페이징 처리를 해서 조회할 수 있다.")
+    void findByPage() {
+        // given
+        memberRepository.save(new Member("member1", 10, null));
+        memberRepository.save(new Member("member2", 10, null));
+        memberRepository.save(new Member("member3", 10, null));
+        memberRepository.save(new Member("member4", 10, null));
+        memberRepository.save(new Member("member5", 10, null));
+        memberRepository.save(new Member("member6", 11, null));
+        memberRepository.save(new Member("member7", 11, null));
+        memberRepository.save(new Member("member8", 11, null));
+        memberRepository.save(new Member("member9", 11, null));
+        memberRepository.save(new Member("member10", 11, null));
+
+        PageRequest pageRequest = PageRequest.of(0, 3, Sort.by(Sort.Direction.DESC, "username"));
+
+        // when
+        Page<Member> page = memberRepository.findByAge(10, pageRequest);
+        List<Member> content = page.getContent();
+        long totalCount =  page.getTotalElements();
+
+        Page<MemberDto> toMap = page.map(member -> new MemberDto(member.getId(), member.getUsername(), null));
+
+        // then
+        assertThat(content).hasSize(3);
+        assertThat(totalCount).isEqualTo(5);
+        assertThat(page.getNumber()).isEqualTo(0);
+        assertThat(page.getTotalPages()).isEqualTo(2);
+        assertThat(page.isFirst()).isTrue();
+        assertThat(page.hasNext()).isTrue();
+    }
+
+    @Test
+    @DisplayName("Member List를 slice페이징 처리를 해서 조회할 수 있다.")
+    void findBySlicePage() {
+        // given
+        memberRepository.save(new Member("member1", 10, null));
+        memberRepository.save(new Member("member2", 10, null));
+        memberRepository.save(new Member("member3", 10, null));
+        memberRepository.save(new Member("member4", 10, null));
+        memberRepository.save(new Member("member5", 10, null));
+        memberRepository.save(new Member("member6", 11, null));
+        memberRepository.save(new Member("member7", 11, null));
+        memberRepository.save(new Member("member8", 11, null));
+        memberRepository.save(new Member("member9", 11, null));
+        memberRepository.save(new Member("member10", 11, null));
+
+        PageRequest pageRequest = PageRequest.of(0, 3, Sort.by(Sort.Direction.DESC, "username"));
+
+        // when
+        Slice<Member> page = memberRepository.findSliceByAge(10, pageRequest);
+        List<Member> content = page.getContent();
+
+        // then
+        assertThat(content).hasSize(3);
+        assertThat(page.getNumber()).isEqualTo(0);
+        assertThat(page.isFirst()).isTrue();
+        assertThat(page.hasNext()).isTrue();
     }
 
 }

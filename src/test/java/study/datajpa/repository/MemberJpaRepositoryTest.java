@@ -137,4 +137,34 @@ class MemberJpaRepositoryTest {
         assertThat(result.get(0).getAge()).isEqualTo(10);
         
     }
+
+    @Test
+    @DisplayName("Member List를 페이징 처리를 해서 조회할 수 있다.")
+    void findByPage() {
+        // given
+        memberJpaRepository.save(new Member("member1", 10, null));
+        memberJpaRepository.save(new Member("member2", 10, null));
+        memberJpaRepository.save(new Member("member3", 10, null));
+        memberJpaRepository.save(new Member("member4", 10, null));
+        memberJpaRepository.save(new Member("member5", 10, null));
+        memberJpaRepository.save(new Member("member6", 11, null));
+        memberJpaRepository.save(new Member("member7", 11, null));
+        memberJpaRepository.save(new Member("member8", 11, null));
+        memberJpaRepository.save(new Member("member9", 11, null));
+        memberJpaRepository.save(new Member("member10", 11, null));
+
+        int age = 10;
+        int offset = 10;
+        int limit = 3;
+
+        // when
+        List<Member> members = memberJpaRepository.findByPage(age, offset, limit);
+        long totalCount = memberJpaRepository.totalCount(age);
+
+        // then
+        assertThat(members).hasSize(3);
+        assertThat(totalCount).isEqualTo(5);
+
+
+    }
 }
