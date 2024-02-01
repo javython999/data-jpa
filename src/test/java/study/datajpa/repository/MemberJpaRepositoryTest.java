@@ -164,7 +164,24 @@ class MemberJpaRepositoryTest {
         // then
         assertThat(members).hasSize(3);
         assertThat(totalCount).isEqualTo(5);
+    }
+    
+    @Test
+    @DisplayName("age가 특정 값 이상인 Member들의 age를 + 1로 수정할 수 있다.")
+    void bulkAgePlus() {
+        // given
+        memberJpaRepository.save(new Member("member1", 10, null));
+        memberJpaRepository.save(new Member("member2", 19, null));
+        memberJpaRepository.save(new Member("member3", 20, null));
+        memberJpaRepository.save(new Member("member4", 21, null));
+        memberJpaRepository.save(new Member("member5", 40, null));
 
+        // when
+        int reusltCount = memberJpaRepository.bulkAgePlus(20);
+
+        // then
+        assertThat(reusltCount).isEqualTo(3);
 
     }
+
 }

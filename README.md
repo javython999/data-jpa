@@ -195,3 +195,98 @@ public void page() throws Exception {
 Page<Member> page = memberRepository.findByAge(10, pageRequest);
 Page<MemberDto> dtoPage = page.map(m -> new MemberDto());
 ```
+### 벌크 수정 쿼리
+* JPA
+```java
+public int bulkAgePlus(int age) {
+    int resultCount = em.createQuery("update Member m set m.age = m.age + 1" + "where m.age >= :age")
+            .setParameter("age", age)
+            .executeUpdate();
+    return resultCount;
+ }
+
+
+@Test
+public void bulkUpdate() throws Exception {
+    //given
+    memberJpaRepository.save(new Member("member1", 10));
+    memberJpaRepository.save(new Member("member2", 19));
+    memberJpaRepository.save(new Member("member3", 20));
+    memberJpaRepository.save(new Member("member4", 21));
+    memberJpaRepository.save(new Member("member5", 40));
+    
+    //when
+    int resultCount = memberJpaRepository.bulkAgePlus(20);
+  
+    //then
+    assertThat(resultCount).isEqualTo(3);
+}
+```
+* 스프링 데이터 JPA
+```java
+@Modifying
+@Query("update Member m set m.age = m.age + 1 where m.age >= :age")
+int bulkAgePlus(@Param("age") int age);
+
+
+@Test
+public void bulkUpdate() throws Exception {
+    //given
+    memberRepository.save(new Member("member1", 10));
+    memberRepository.save(new Member("member2", 19));
+    memberRepository.save(new Member("member3", 20));
+    memberRepository.save(new Member("member4", 21));
+    memberRepository.save(new Member("member5", 40));
+  
+    //when
+    int resultCount = memberRepository.bulkAgePlus(20);
+    
+    //then
+    assertThat(resultCount).isEqualTo(3);
+}
+```
+* 벌크성 수정, 삭제 쿼리는 `@Modifying` 애노테이션을 적용
+  * 사용하지 않으면 예외 발생(`org.hibernate.hql.internal.QueryExecutionRequestException: Not supported
+      for DML operations`)
+* 벌크성 쿼리를 실행하고나서 영속성 컨텍스트를 초기화: `@Modifying(clearAutomatically = true)` / 기본값 `false`
+  * 이 옵션없이 조회시 DB에서 데이터를 가져온 후 같은 entity가 영속성 컨텍스트에 존재하는 것을 확인하고 DB에서 가져온 데이터는 버리고 영속성 컨텍스트의 entity를 반환하게 된다.
+
+> 1. 영속성 컨텍스트에 entity가 없는 상태에서 벌크 연산을 수행한다.
+> 2. 부득이하게 영속성 컨텍스트에 entity가 있는 경우 벌크연산 수행 직후 영속성 컨텍스트를 초기화 한다.
+
+### @EntityGraph
+연관된 entity들을 SQL 한번에 조회
+> member -> team은 지연로딩 관계이다. 따라서 다음과 같이 team의 데이터를 조회할 때 마다 쿼리가 실행된다.(N+1문제)
+```java
+//Hibernate 기능으로 확인
+Hibernate.isInitialized(member.getTeam())
+
+//JPA 표준 방법으로 확인
+PersistenceUnitUtil util = em.getEntityManagerFactory().getPersistenceUnitUtil();
+util.isLoaded(member.getTeam());
+```
+
+N+1문제를 해결 하려면 fetch join이 필요하다.
+* JPQL fetch join
+```java
+@Query("select m from Member m left join fetch m.team")
+List<Member> findMemberFetchJoin();
+```
+
+* 스프링 데이터 JPA 
+> JPA가 제공하는 엔티티 그래프 기능을 편리하게 사용하게 도와준다. 이 기능을 사용하면 JPQL 없이 페치 조인을 사용할 수 있다. (JPQL + 엔티티 그래프도 가능)
+```java
+//공통 메서드 오버라이드
+@Override
+@EntityGraph(attributePaths = {"team"})
+List<Member> findAll();
+
+//JPQL + 엔티티 그래프
+@EntityGraph(attributePaths = {"team"})
+@Query("select m from Member m")
+List<Member> findMemberEntityGraph();
+
+//메서드 이름으로 쿼리에서 특히 편리하다.
+@EntityGraph(attributePaths = {"team"})
+List<Member> findByUsername(String username);
+```

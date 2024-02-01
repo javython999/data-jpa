@@ -1,5 +1,7 @@
 package study.datajpa.repository;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +25,8 @@ class MemberRepositoryTest {
 
     @Autowired MemberRepository memberRepository;
     @Autowired TeamRepository teamRepository;
+    @PersistenceContext
+    EntityManager em;
 
     @Test
     @DisplayName("Member를 저장 할 수 있다.")
@@ -283,4 +287,51 @@ class MemberRepositoryTest {
         assertThat(page.hasNext()).isTrue();
     }
 
+
+    @Test
+    @DisplayName("age가 특정 값 이상인 Member들의 age를 + 1로 수정할 수 있다.")
+    void bulkAgePlust() {
+        // given
+        memberRepository.save(new Member("member1", 10, null));
+        memberRepository.save(new Member("member2", 19, null));
+        memberRepository.save(new Member("member3", 20, null));
+        memberRepository.save(new Member("member4", 21, null));
+        memberRepository.save(new Member("member5", 40, null));
+
+        // when
+        int reusltCount = memberRepository.bulkAgePlus(20);
+        List<Member> result = memberRepository.findByUsername("member5");
+        Member member5 = result.get(0);
+
+        // then
+        assertThat(reusltCount).isEqualTo(3);
+        assertThat(member5.getAge()).isEqualTo(41);
+    }
+
+    @Test
+    @DisplayName("Member의 팀을 지연로딩 한다.")
+    void findMemberByLazy() {
+        // given
+        Team teamA = new Team("teamA");
+        Team teamB = new Team("teamB");
+        teamRepository.save(teamA);
+        teamRepository.save(teamB);
+
+        memberRepository.save(new Member("member1", 10, teamA));
+        memberRepository.save(new Member("member2", 20, teamB));
+
+        em.flush();
+        em.clear();
+
+        // when
+        //List<Member> members = memberRepository.findAll();
+        //List<Member> members = memberRepository.findMemberFetchJoin();
+        List<Member> members = memberRepository.findEntityGraph();
+
+        for (Member member : members) {
+            System.out.println("member.getUsername = " + member.getUsername());
+            System.out.println("member.getTeam = " + member.getTeam().getName());
+            System.out.println("member.getTeam.getClass = " + member.getTeam().getClass());
+        }
+    }
 }
