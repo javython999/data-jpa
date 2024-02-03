@@ -366,4 +366,18 @@ class MemberRepositoryTest {
 
         // then
     }
+
+    @Test
+    @DisplayName("callCustom")
+    void callCustom() {
+        // given
+        Member member = new Member("member1", 10, null);
+        memberRepository.save(member);
+
+        // when
+        List<Member> memberCustom = memberRepository.findMemberCustom();
+
+        // then
+        assertThat(memberCustom).hasSize(1);
+    }
 }
