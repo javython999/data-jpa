@@ -466,3 +466,64 @@ public class BaseEntity {
     </persistence-unit-metadata>
 </entity-mappings>
 ```
+### Web확장 - 도메인 클래스 컨버터
+> HTTP 파라미터로 넘어온 엔티티의 아이디로 엔티티 객체를 찾아 바인딩
+* 도메인 클래스 컨버터 적용 전
+```java
+@RestController
+@RequiredArgsConstructor
+public class MemberController { 
+    private final MemberRepository memberRepository;
+    
+    @GetMapping("/members/{id}")
+    public String findMember(@PathVariable("id") Long id) {
+        Member member = memberRepository.findById(id).get();
+        return member.getUsername();
+    }
+ }
+```
+* 도메인 클래스 컨버터 적용 후
+```java
+@RestController
+@RequiredArgsConstructor
+public class MemberController {
+    
+    private final MemberRepository memberRepository;
+ 
+    @GetMapping("/members/{id}")
+    public String findMember(@PathVariable("id") Member member) {
+        return member.getUsername();
+    }
+ }
+```
+> 주의: 도메인 클래스 컨버터로 받은 엔티티는 단순 조회용으로만 사용해야 한다. (트랜잭션이 없는 범위에서 엔티티를 조회했으므로 영속성 컨텍스트에서 관리하는 엔티티가 아니다.)
+
+### Web 확장 - 페이징과 정렬
+* 페이징과 정렬
+```java
+@GetMapping("/members")
+public Page<Member> list(Pageable pageable) {
+    return memberRepository.findAll(pageable);
+}
+```
+* 파라미터로 `Pageable`을 받을 수 있다.
+* `Pageable`은 인터페이스, 실제는 `org.springframework.data.domain.PageRequest` 객체 생성
+
+요청 파라미터
+* 예: `/members?page=0&size=3&sort=id,desc&sort=username,desc`
+* `page`: 현재 페이지, 0부터 시작한다.
+* `size`: 한 페이지에 노출할 데이터 건수
+* `sort`: 정렬 조건을 정의한다. 예) 정렬 속성,정렬 속성...(ASC | DESC), 정렬 방향을 변경하고 싶으면 `sort`파라미터 추가 (`asc`기본값 생략 가능)
+
+Global 설정
+* `application.yml`등의 설정파일에 추가
+> spring.data.web.pageable.default-page-size=20 /# 기본 페이지 사이즈/
+> spring.data.web.pageable.max-page-size=2000  /# 최대 페이지 사이즈/
+
+개별 설정(`@PageableDefault`사용)
+```java
+@GetMapping(value = "/members_page")
+public String list(@PageableDefault(size = 12, sort = "username", direction = Sort.Direction.DESC) Pageable pageable) {
+  ....
+}
+```
