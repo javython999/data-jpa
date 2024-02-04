@@ -381,3 +381,88 @@ public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
 ```
 * 기존 방식보다 이 방식이 사용자 정의 인터페이스 이름과 구현 클래스 이름이 비슷하므로 더 직관적이다. 추가로 여러
   인터페이스를 분리해서 구현하는 것도 가능하기 때문에 새롭게 변경된 이 방식을 사용하는 것을 더 권장한다.
+### Auditing
+공통적으로 가지고 있는 필드나 컬럼의 값을 자동으로 넣어주는 기능.
+* JPA
+```java
+@MappedSuperclass
+@Getter
+public class JpaBaseEntity {
+    @Column(updatable = false)
+    private LocalDateTime createdDate;
+    private LocalDateTime updatedDate;
+    
+    @PrePersist
+    public void prePersist() {
+        LocalDateTime now = LocalDateTime.now();
+        createdDate = now;
+        updatedDate = now;
+    }
+    
+    @PreUpdate
+    public void preUpdate() {
+        updatedDate = LocalDateTime.now();
+    }
+}
+```
+* 스프링 데이터 JPA
+> 몇가지 설정이 필요하다.
+> * 스프링 부트 클래스에 `@EnableJpaAuditing` 추가
+> * BaseEntity에 `@EntityListeners(AuditingEntityListener.class)` 추가
+
+* 스프링 데이터 JPA Auditing 설정예제
+```java
+@EnableJpaAuditing
+@SpringBootApplication
+public class DataJpaApplication { 
+    public static void main(String[] args) {
+        SpringApplication.run(DataJpaApplication.class, args);
+    }
+     
+    @Bean
+    public AuditorAware<String> auditorProvider() {
+        return () -> Optional.of(UUID.randomUUID().toString());
+    }
+}
+```
+```java
+@EntityListeners(AuditingEntityListener.class)
+@MappedSuperclass
+public class BaseEntity {
+
+    @CreatedDate
+    @Column(updatable = false)
+    private LocalDateTime createdDate;
+    
+    @LastModifiedDate
+    private LocalDateTime lastModifiedDate;
+    
+    @CreatedBy
+    @Column(updatable = false)
+    private String createdBy;
+    
+    @LastModifiedBy
+    private String lastModifiedBy;
+}
+```
+>  `@EntityListeners(AuditingEntityListener.class)`를 생략하고 스프링 데이터 JPA 가 제공하는 이벤
+트를 엔티티 전체에 적용하려면 orm.xml에 다음과 같이 등록하면 된다
+
+`META-INF/orm.xml`
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+    <entity-mappings 
+        xmlns="http://xmlns.jcp.org/xml/ns/persistence/orm"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/persistence/orm 
+                                  http://xmlns.jcp.org/xml/ns/persistence/orm_2_2.xsd"
+    version="2.2">
+    <persistence-unit-metadata>
+        <persistence-unit-defaults>
+            <entity-listeners>
+                <entity-listener class="org.springframework.data.jpa.domain.support.AuditingEntityListener"/>
+            </entity-listeners>
+        </persistence-unit-defaults>
+    </persistence-unit-metadata>
+</entity-mappings>
+```
