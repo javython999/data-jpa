@@ -6,10 +6,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Slice;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.transaction.annotation.Transactional;
 import study.datajpa.dto.MemberDto;
 import study.datajpa.entity.Member;
@@ -380,4 +378,108 @@ class MemberRepositoryTest {
         // then
         assertThat(memberCustom).hasSize(1);
     }
+
+    @Test
+    @DisplayName("specBasic")
+    void specBasic() {
+        // given
+        Team team = new Team("teamA");
+        em.persist(team);
+
+        Member member1 = new Member("user1", 10, team);
+        Member member2 = new Member("user2", 20, team);
+        em.persist(member1);
+        em.persist(member2);
+
+        em.flush();
+        em.clear();
+
+        // when
+        Specification<Member> spec = MemberSpe.username("user1").and(MemberSpe.teamName("teamA"));
+        List<Member> result = memberRepository.findAll(spec);
+
+        // then
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getId()).isEqualTo(member1.getId());
+    }
+
+    @Test
+    @DisplayName("queryByExample")
+    void queryByExample() {
+        // given
+        Team team = new Team("teamA");
+        em.persist(team);
+
+        Member member1 = new Member("user1", 10, team);
+        Member member2 = new Member("user2", 20, team);
+        em.persist(member1);
+        em.persist(member2);
+
+        em.flush();
+        em.clear();
+
+        // when
+        // Probe
+        Member memberFindParam = new Member("user1");
+        Team teamFindParam = new Team("teamA");
+        memberFindParam.setTeam(teamFindParam);
+
+        ExampleMatcher matcher = ExampleMatcher.matching()
+                .withIgnorePaths("age");
+        Example<Member> example = Example.of(memberFindParam, matcher);
+
+        List<Member> result = memberRepository.findAll(example);
+
+        // then
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getId()).isEqualTo(member1.getId());
+    }
+
+    @Test
+    @DisplayName("projections")
+    void projections() {
+        // given
+        Team team = new Team("teamA");
+        em.persist(team);
+
+        Member member1 = new Member("member1", 10, team);
+        Member member2 = new Member("member2", 20, team);
+        em.persist(member1);
+        em.persist(member2);
+
+        em.flush();
+        em.clear();
+
+        // when
+        List<UsernameOnly> result = memberRepository.findProjectionsByUsername("member1");
+
+        // then
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getUsername()).isEqualTo(member1.getUsername());
+    }
+
+
+    @Test
+    @DisplayName("projectionsDto")
+    void projectionsDto() {
+        // given
+        Team team = new Team("teamA");
+        em.persist(team);
+
+        Member member1 = new Member("member1", 10, team);
+        Member member2 = new Member("member2", 20, team);
+        em.persist(member1);
+        em.persist(member2);
+
+        em.flush();
+        em.clear();
+
+        // when
+        List<UsernameOnlyDto> result = memberRepository.findDtoByUsername("member1");
+
+        // then
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).username()).isEqualTo(member1.getUsername());
+    }
+
 }
